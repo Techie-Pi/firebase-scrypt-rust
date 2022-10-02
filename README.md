@@ -2,6 +2,9 @@
 
 Pure Rust implementation of [Firebase's scrypt](https://github.com/firebase/scrypt) password hashing algorithm.
 
+[![Crates.io](https://img.shields.io/crates/v/firebase-scrypt.svg)](https://crates.io/crates/firebase-scrypt)
+[![Documentation](https://docs.rs/firebase-scrypt/badge.svg)](https://docs.rs/firebase-scrypt)
+
 ## Installation
 Add this to your ``Cargo.toml``
 
