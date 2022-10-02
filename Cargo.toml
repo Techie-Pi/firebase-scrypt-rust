@@ -1,0 +1,18 @@
+[package]
+name = "firebase-scrypt"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.13"
+scrypt = { version = "0.10", default-features = false }
+aes = "0.8"
+ctr = "0.9"
+constant_time_eq = "0.2"
+
+[dev-dependencies]
+hex = "0.4"
+
+[features]
+default = ["simple"]
+simple = []
