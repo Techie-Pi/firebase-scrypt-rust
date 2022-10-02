@@ -1,6 +1,6 @@
 # Firebase Scrypt (for Rust)
 
-Pure Rust implementation of [Firebase's script](https://github.com/firebase/scrypt) password hashing algorithm.
+Pure Rust implementation of [Firebase's scrypt](https://github.com/firebase/scrypt) password hashing algorithm.
 
 ## Installation
 Add this to your ``Cargo.toml``
