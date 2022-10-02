@@ -22,7 +22,7 @@ use crate::{verify_password, VerifyPasswordError};
 ///
 /// assert!(firebase_scrypt.verify_password(password, salt, password_hash).unwrap())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FirebaseScrypt {
     salt_separator: String,
     signer_key: String,

@@ -29,7 +29,7 @@
 #![feature(int_log)]
 
 use aes::{Aes256};
-use aes::cipher::{KeyInit, KeyIvInit, StreamCipher};
+use aes::cipher::{KeyIvInit, StreamCipher};
 use constant_time_eq::constant_time_eq;
 use ctr::{Ctr128BE};
 use scrypt::Params;

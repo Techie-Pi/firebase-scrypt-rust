@@ -46,7 +46,7 @@ impl From<StreamCipherError> for EncryptError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VerifyPasswordError {
     GenerateDerivedKeyFailed,
     DecodingFailed,
