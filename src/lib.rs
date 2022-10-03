@@ -1,6 +1,6 @@
 //! Implementation of [Firebase Scrypt](https://github.com/firebase/scrypt) in pure Rust.
 //!
-//! If you are only using the [`verify_password`] function instead of the higher-level struct [`FirebaseScrypt`],
+//! If you are only using the raw functions instead of the higher-level struct [`FirebaseScrypt`],
 //! it's recommended to disable default features in your ``Cargo.toml``
 //!
 //! ```toml
@@ -31,7 +31,7 @@ use aes::cipher::{KeyIvInit, StreamCipher};
 use constant_time_eq::constant_time_eq;
 use ctr::{Ctr128BE};
 use scrypt::Params;
-use crate::errors::{DerivedKeyError, EncryptError, VerifyPasswordError};
+use crate::errors::{DerivedKeyError, EncryptError, GenerateHashError};
 
 pub mod errors;
 #[cfg(feature = "simple")]
@@ -119,14 +119,56 @@ pub fn verify_password(
     signer_key: &str,
     rounds: u32,
     mem_cost: u32,
-) -> Result<bool, VerifyPasswordError> {
+) -> Result<bool, GenerateHashError> {
+    let password_hash = generate_raw_hash(password, salt, salt_separator, signer_key, rounds, mem_cost)?;
+
+    Ok(constant_time_eq(password_hash.as_slice(), base64::decode(known_hash)?.as_slice()))
+}
+
+/// Generates a hash in the form of a [`Vec<u8>`]
+///
+/// In case you want or are using the same hash representation as Firebase, use the [`FirebaseScrypt`]
+/// struct to get the Base64 hashed directly.
+///
+/// # Example (generate Base64 hash)
+/// ```
+/// // Base64 crate for encoding the hash
+/// use base64::encode;
+/// use firebase_scrypt::generate_raw_hash;
+///
+/// const SALT_SEPARATOR: &str = "Bw==";
+/// const SIGNER_KEY: &str = "jxspr8Ki0RYycVU8zykbdLGjFQ3McFUH0uiiTvC8pVMXAn210wjLNmdZJzxUECKbm0QsEmYUSDzZvpjeJ9WmXA==";
+/// const ROUNDS: u32 = 8;
+/// const MEM_COST: u32 = 14;
+///
+/// let password = "user1password";
+/// let salt = "42xEC+ixf3L2lw==";
+/// let password_hash ="lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
+///
+/// let hash = encode(generate_raw_hash(
+///     password,
+///     salt,
+///     SALT_SEPARATOR,
+///     SIGNER_KEY,
+///     ROUNDS,
+///     MEM_COST,
+/// ).unwrap());
+///
+/// assert_eq!(hash, password_hash);
+/// ```
+pub fn generate_raw_hash(
+    password: &str,
+    salt: &str,
+    salt_separator: &str,
+    signer_key: &str,
+    rounds: u32,
+    mem_cost: u32,
+) -> Result<Vec<u8>, GenerateHashError> {
     let derived_key = generate_derived_key(password, salt, salt_separator, rounds, mem_cost)?;
     let signer_key = base64::decode(signer_key)?;
 
     let result = encrypt(signer_key.as_slice(), derived_key[..32].try_into().unwrap())?;
-    let password_hash = base64::decode(base64::encode(result))?;
-
-    Ok(constant_time_eq(password_hash.as_slice(), base64::decode(known_hash)?.as_slice()))
+    Ok(base64::decode(base64::encode(result))?)
 }
 
 #[cfg(test)]
@@ -141,6 +183,7 @@ mod tests {
     const PASSWORD_HASH: &str ="lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
 
     use super::*;
+
     #[test]
     fn verify_password_works() {
         assert!(verify_password(
@@ -152,6 +195,18 @@ mod tests {
             ROUNDS,
             MEM_COST
         ).unwrap())
+    }
+
+    #[test]
+    fn generate_hash_works() {
+        assert_eq!(base64::encode(generate_raw_hash(
+            PASSWORD,
+            SALT,
+            SALT_SEPARATOR,
+            SIGNER_KEY,
+            ROUNDS,
+            MEM_COST,
+        ).unwrap()), PASSWORD_HASH)
     }
 
     #[test]
