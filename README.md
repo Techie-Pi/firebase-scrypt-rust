@@ -55,3 +55,6 @@ let is_valid = verify_password(
      MEM_COST,
 ).unwrap();
 ```
+
+## MSRV
+The minimum supported Rust version is: ``1.59``
