@@ -26,8 +26,6 @@
 //! assert!(firebase_scrypt.verify_password(password, salt, password_hash).unwrap())
 //! ```
 
-#![feature(int_log)]
-
 use aes::{Aes256};
 use aes::cipher::{KeyIvInit, StreamCipher};
 use constant_time_eq::constant_time_eq;
@@ -51,7 +49,7 @@ fn generate_derived_key<'a>(
     rounds: u32,
     mem_cost: u32,
 ) -> Result<[u8; 64], DerivedKeyError> {
-    let log2_n = 2_u32.pow(mem_cost).log(2);
+    let log2_n = 2_f32.powf(mem_cost as f32).log2().floor() as u32;
     let p: u32 = 1;
 
     debug_assert!(log2_n < 64, "log2 of n must not be larger than 64");
