@@ -10,7 +10,7 @@ Add this to your ``Cargo.toml``
 
 ```toml
 [dependencies]
-firebase-scrypt = "0.1"
+firebase-scrypt = "0.2"
 ```
 
 ## Usage
