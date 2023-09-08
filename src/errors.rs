@@ -29,7 +29,7 @@ impl From<InvalidOutputLen> for DerivedKeyError {
 
 #[derive(Clone, Debug)]
 pub(crate) enum EncryptError {
-    StreamCipher(StreamCipherError)
+    StreamCipher(StreamCipherError),
 }
 
 impl From<StreamCipherError> for EncryptError {
