@@ -26,11 +26,14 @@
 //! assert!(firebase_scrypt.verify_password(password, salt, password_hash).unwrap())
 //! ```
 
-use aes::{cipher::{KeyIvInit, StreamCipher}, Aes256};
+use crate::errors::{DerivedKeyError, EncryptError, GenerateHashError};
+use aes::{
+    cipher::{KeyIvInit, StreamCipher},
+    Aes256,
+};
 use constant_time_eq::constant_time_eq;
 use ctr::Ctr128BE;
 use scrypt::Params;
-use crate::errors::{DerivedKeyError, EncryptError, GenerateHashError};
 
 pub mod errors;
 #[cfg(feature = "simple")]
@@ -64,12 +67,7 @@ fn generate_derived_key<'a>(
     let params = Params::new(log2_n as u8, rounds, p)?;
 
     let mut result = [0u8; 64];
-    scrypt::scrypt(
-        password,
-        salt.as_slice(),
-        &params,
-        &mut result
-    )?;
+    scrypt::scrypt(password, salt.as_slice(), &params, &mut result)?;
 
     Ok(result)
 }
@@ -78,8 +76,7 @@ fn encrypt(signer_key: &[u8], key: [u8; 32]) -> Result<Vec<u8>, EncryptError> {
     let mut cipher = Ctr128BE::<Aes256>::new(&key.into(), &IV.into());
 
     let mut buffer = vec![0u8; signer_key.len()];
-    cipher
-        .apply_keystream_b2b(signer_key, &mut buffer)?;
+    cipher.apply_keystream_b2b(signer_key, &mut buffer)?;
 
     Ok(buffer)
 }
@@ -123,24 +120,13 @@ pub fn verify_password(
     rounds: u32,
     mem_cost: u32,
 ) -> Result<bool, GenerateHashError> {
-    let password_hash = generate_raw_hash(
-        password, 
-        salt, 
-        salt_separator, 
-        signer_key, 
-        rounds, 
-        mem_cost
-    )?;
+    let password_hash =
+        generate_raw_hash(password, salt, salt_separator, signer_key, rounds, mem_cost)?;
 
-    Ok(
-        constant_time_eq(
-            password_hash.as_slice(), 
-            base64::decode(
-                clean(known_hash)
-            )?
-            .as_slice()
-        )
-    )
+    Ok(constant_time_eq(
+        password_hash.as_slice(),
+        base64::decode(clean(known_hash))?.as_slice(),
+    ))
 }
 
 /// Generates a hash in the form of a [`Vec<u8>`]
@@ -182,7 +168,8 @@ pub fn generate_raw_hash(
     rounds: u32,
     mem_cost: u32,
 ) -> Result<Vec<u8>, GenerateHashError> {
-    let derived_key = generate_derived_key(password, &clean(salt), salt_separator, rounds, mem_cost)?;
+    let derived_key =
+        generate_derived_key(password, &clean(salt), salt_separator, rounds, mem_cost)?;
     let signer_key = base64::decode(signer_key)?;
 
     let result = encrypt(signer_key.as_slice(), derived_key[..32].try_into().unwrap())?;
@@ -192,13 +179,15 @@ pub fn generate_raw_hash(
 #[cfg(test)]
 mod tests {
     const SALT_SEPARATOR: &str = "Bw==";
-    const SIGNER_KEY: &str = "jxspr8Ki0RYycVU8zykbdLGjFQ3McFUH0uiiTvC8pVMXAn210wjLNmdZJzxUECKbm0QsEmYUSDzZvpjeJ9WmXA==";
+    const SIGNER_KEY: &str =
+        "jxspr8Ki0RYycVU8zykbdLGjFQ3McFUH0uiiTvC8pVMXAn210wjLNmdZJzxUECKbm0QsEmYUSDzZvpjeJ9WmXA==";
     const ROUNDS: u32 = 8;
     const MEM_COST: u32 = 14;
 
     const PASSWORD: &str = "user1password";
     const SALT: &str = "42xEC+ixf3L2lw==";
-    const PASSWORD_HASH: &str ="lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
+    const PASSWORD_HASH: &str =
+        "lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
 
     use super::*;
 
@@ -212,19 +201,19 @@ mod tests {
             SIGNER_KEY,
             ROUNDS,
             MEM_COST
-        ).unwrap())
+        )
+        .unwrap())
     }
 
     #[test]
     fn generate_hash_works() {
-        assert_eq!(base64::encode(generate_raw_hash(
-            PASSWORD,
-            SALT,
-            SALT_SEPARATOR,
-            SIGNER_KEY,
-            ROUNDS,
-            MEM_COST,
-        ).unwrap()), PASSWORD_HASH)
+        assert_eq!(
+            base64::encode(
+                generate_raw_hash(PASSWORD, SALT, SALT_SEPARATOR, SIGNER_KEY, ROUNDS, MEM_COST,)
+                    .unwrap()
+            ),
+            PASSWORD_HASH
+        )
     }
 
     #[test]
@@ -232,7 +221,10 @@ mod tests {
         let param_1 = b"randomrandomrandomrandomrandomrandomrandom";
         let param_2 = b"12345678901234567890123456789012";
 
-        assert_eq!(hex::encode(encrypt(param_1, *param_2).unwrap()), "09f509fa3d09cde568f80709416681e4ed5d9677ca8b4807a932869ba3fd057be3606c2940877850ed96");
+        assert_eq!(
+            hex::encode(encrypt(param_1, *param_2).unwrap()),
+            "09f509fa3d09cde568f80709416681e4ed5d9677ca8b4807a932869ba3fd057be3606c2940877850ed96"
+        );
     }
 
     #[test]

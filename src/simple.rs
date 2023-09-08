@@ -1,4 +1,4 @@
-use crate::{verify_password, GenerateHashError, generate_raw_hash};
+use crate::{generate_raw_hash, verify_password, GenerateHashError};
 
 /// Struct to simplify the usage of hash generation and checking.
 ///
@@ -68,7 +68,12 @@ impl FirebaseScrypt {
     ///
     /// assert!(is_valid)
     /// ```
-    pub fn verify_password(&self, password: &str, salt: &str, known_hash: &str) -> Result<bool, GenerateHashError> {
+    pub fn verify_password(
+        &self,
+        password: &str,
+        salt: &str,
+        known_hash: &str,
+    ) -> Result<bool, GenerateHashError> {
         verify_password(
             password,
             known_hash,
@@ -117,7 +122,11 @@ impl FirebaseScrypt {
     ///
     /// firebase_scrypt.generate_base64_hash(password, salt).unwrap();
     /// ```
-    pub fn generate_base64_hash(&self, password: &str, salt: &str) -> Result<String, GenerateHashError> {
+    pub fn generate_base64_hash(
+        &self,
+        password: &str,
+        salt: &str,
+    ) -> Result<String, GenerateHashError> {
         let hash = generate_raw_hash(
             password,
             salt,
@@ -134,13 +143,15 @@ impl FirebaseScrypt {
 #[cfg(test)]
 mod tests {
     const SALT_SEPARATOR: &str = "Bw==";
-    const SIGNER_KEY: &str = "jxspr8Ki0RYycVU8zykbdLGjFQ3McFUH0uiiTvC8pVMXAn210wjLNmdZJzxUECKbm0QsEmYUSDzZvpjeJ9WmXA==";
+    const SIGNER_KEY: &str =
+        "jxspr8Ki0RYycVU8zykbdLGjFQ3McFUH0uiiTvC8pVMXAn210wjLNmdZJzxUECKbm0QsEmYUSDzZvpjeJ9WmXA==";
     const ROUNDS: u32 = 8;
     const MEM_COST: u32 = 14;
 
     const PASSWORD: &str = "user1password";
     const SALT: &str = "42xEC+ixf3L2lw==";
-    const PASSWORD_HASH: &str ="lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
+    const PASSWORD_HASH: &str =
+        "lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
 
     use super::*;
 
@@ -148,20 +159,20 @@ mod tests {
     fn verify_password_with_simple_works() {
         let firebase_scrypt = FirebaseScrypt::new(SALT_SEPARATOR, SIGNER_KEY, ROUNDS, MEM_COST);
 
-        assert!(firebase_scrypt.verify_password(
-            PASSWORD,
-            SALT,
-            PASSWORD_HASH,
-        ).unwrap())
+        assert!(firebase_scrypt
+            .verify_password(PASSWORD, SALT, PASSWORD_HASH,)
+            .unwrap())
     }
 
     #[test]
     fn generate_hash_with_simple_works() {
         let firebase_scrypt = FirebaseScrypt::new(SALT_SEPARATOR, SIGNER_KEY, ROUNDS, MEM_COST);
 
-        assert_eq!(firebase_scrypt.generate_base64_hash(
-            PASSWORD,
-            SALT,
-        ).unwrap(), PASSWORD_HASH)
+        assert_eq!(
+            firebase_scrypt
+                .generate_base64_hash(PASSWORD, SALT,)
+                .unwrap(),
+            PASSWORD_HASH
+        )
     }
 }
