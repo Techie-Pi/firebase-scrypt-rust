@@ -26,10 +26,9 @@
 //! assert!(firebase_scrypt.verify_password(password, salt, password_hash).unwrap())
 //! ```
 
-use aes::{Aes256};
-use aes::cipher::{KeyIvInit, StreamCipher};
+use aes::{cipher::{KeyIvInit, StreamCipher}, Aes256};
 use constant_time_eq::constant_time_eq;
-use ctr::{Ctr128BE};
+use ctr::Ctr128BE;
 use scrypt::Params;
 use crate::errors::{DerivedKeyError, EncryptError, GenerateHashError};
 
@@ -41,6 +40,10 @@ mod simple;
 pub use simple::FirebaseScrypt;
 
 const IV: [u8; 16] = *b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+fn clean(a: &str) -> String {
+    a.replace("-", "+").replace("_", "/")
+}
 
 fn generate_derived_key<'a>(
     password: &'a str,
@@ -120,9 +123,24 @@ pub fn verify_password(
     rounds: u32,
     mem_cost: u32,
 ) -> Result<bool, GenerateHashError> {
-    let password_hash = generate_raw_hash(password, salt, salt_separator, signer_key, rounds, mem_cost)?;
+    let password_hash = generate_raw_hash(
+        password, 
+        salt, 
+        salt_separator, 
+        signer_key, 
+        rounds, 
+        mem_cost
+    )?;
 
-    Ok(constant_time_eq(password_hash.as_slice(), base64::decode(known_hash)?.as_slice()))
+    Ok(
+        constant_time_eq(
+            password_hash.as_slice(), 
+            base64::decode(
+                clean(known_hash)
+            )?
+            .as_slice()
+        )
+    )
 }
 
 /// Generates a hash in the form of a [`Vec<u8>`]
@@ -164,7 +182,7 @@ pub fn generate_raw_hash(
     rounds: u32,
     mem_cost: u32,
 ) -> Result<Vec<u8>, GenerateHashError> {
-    let derived_key = generate_derived_key(password, salt, salt_separator, rounds, mem_cost)?;
+    let derived_key = generate_derived_key(password, &clean(salt), salt_separator, rounds, mem_cost)?;
     let signer_key = base64::decode(signer_key)?;
 
     let result = encrypt(signer_key.as_slice(), derived_key[..32].try_into().unwrap())?;
